@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EGAS, контроль аренды</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style id="css">
+:root{
+  color-scheme:dark;
+  --shell:#0d0c17;
+  --text:#efeef8; --sec:#aeabc8; --mut:#7f7c9c;
+  --occ:#8f7bff; --occ-fill:rgba(143,123,255,.46);
+  --free:#f6c344; --free-fill:rgba(246,195,68,.62);
+  --debt:#ff5d55; --debt-soft:#ff8a83;
+  --risk:#ff9a3c;
+  --c6:#4d8dff; --c12:#9cbcff;
+  --rest:rgba(255,255,255,.14);
+  --card:rgba(255,255,255,.045);
+  --card-line:rgba(255,255,255,.06);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  font-family:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--shell);color:var(--text);font:400 14px/1.45 'Onest',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--occ);outline-offset:2px}
+.ic{display:block;flex:none}
+
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:76px minmax(0,1fr);height:100%;min-height:640px}
+
+/* shell: sidebar + header, one surface */
+.side{grid-row:1/3;padding:24px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;height:28px;margin:0 8px 40px}
+.brand b{font-size:20px;font-weight:700;letter-spacing:.5px}
+.brand span{color:var(--mut);font-size:12px;margin-top:3px}
+.side h2{font-size:12px;font-weight:500;color:var(--mut);margin:0 10px 10px}
+.obj{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:0;border-radius:12px;background:transparent;text-align:left;margin-bottom:4px;transition:background .15s}
+.obj:hover{background:rgba(255,255,255,.04)}
+.obj[aria-current="page"]{background:rgba(143,123,255,.16)}
+.obj .t{display:flex;flex-direction:column;min-width:0}
+.obj .t b{font-weight:600;font-size:15px}
+.obj .t small{color:var(--mut);font-size:12px}
+.obj[aria-current="page"] .t small{color:var(--sec)}
+.obj .ic{color:#5d5a7a}
+.obj[aria-current="page"] .ic{color:var(--occ)}
+.side .fill{flex:1}
+.side .note{color:var(--mut);font-size:12px;margin:0 10px;line-height:1.5}
+
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 20px;min-width:0}
+.top h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.3px;line-height:1.1}
+.top .sub{color:var(--sec);font-size:13px;margin-top:4px}
+.chips{display:flex;gap:8px}
+.chip{display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:17px;background:rgba(255,255,255,.05);color:var(--sec);font-size:13px;white-space:nowrap}
+.chip b{color:var(--text);font-weight:600}
+
+/* stage: static light under dense frosted glass */
+.stage{position:relative;margin:0 16px 16px 4px;border-radius:24px;overflow:hidden;min-height:0;isolation:isolate}
+.glow{position:absolute;inset:0;z-index:0;pointer-events:none}
+.glow i{position:absolute;border-radius:50%}
+.glow i:nth-child(1){width:560px;height:420px;left:6%;top:-120px;background:#4b3fc4;opacity:.75}
+.glow i:nth-child(2){width:520px;height:480px;right:-80px;top:22%;background:#3a3fa8;opacity:.7}
+.glow i:nth-child(3){width:620px;height:360px;left:28%;bottom:-170px;background:#5a46c9;opacity:.55}
+.glow i:nth-child(4){width:260px;height:260px;left:-60px;top:52%;background:#3c349b;opacity:.6}
+.glass{position:absolute;inset:0;z-index:1;background:rgba(22,20,40,.62);-webkit-backdrop-filter:blur(70px) saturate(140%);backdrop-filter:blur(70px) saturate(140%);overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:136px 296px 324px;gap:12px;padding:16px;min-width:900px}
+.card{background:var(--card);border:1px solid var(--card-line);border-radius:16px;min-width:0;min-height:0;display:flex;flex-direction:column}
+.k{grid-column:span 3;padding:16px 18px 16px}
+.plan{grid-column:span 7}
+.ai{grid-column:span 5}
+.debts{grid-column:span 7}
+.ends{grid-column:span 5}
+
+/* kpi */
+.kh{display:flex;align-items:center;gap:10px;color:var(--sec);font-size:13px}
+.kh .ic{width:22px;height:22px}
+.kv{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+.kv b{font-size:30px;font-weight:600;letter-spacing:-.6px;line-height:1;white-space:nowrap}
+.kv b small{font-size:17px;font-weight:500;letter-spacing:0;margin-left:2px}
+.kv > span{font-size:13px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv em{font-style:normal;font-weight:600}
+.kfoot{margin-top:auto}
+.kcap{margin-top:8px;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* segmented bars */
+.seg{display:flex;gap:3px;height:6px}
+.seg i{display:block;height:100%;border-radius:3px;min-width:3px}
+.segrow{display:grid;grid-template-columns:72px 1fr 38px;align-items:center;gap:10px;font-size:12px;color:var(--sec)}
+.segrow + .segrow{margin-top:7px}
+.segrow b{font-weight:600;color:var(--text);text-align:right}
+
+/* block head */
+.bh{display:flex;align-items:center;gap:10px;padding:14px 18px 0;min-height:44px}
+.bh h3{margin:0;font-size:15px;font-weight:600}
+.bh .ic{width:22px;height:22px}
+.bh .end{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--sec);font-size:12px}
+.lg{display:flex;align-items:center;gap:6px}
+.lg i{width:9px;height:9px;border-radius:3px;display:block}
+.lg b{color:var(--text);font-weight:600}
+
+.planbox{flex:1;min-height:0;padding:8px 18px 16px}
+.planbox svg{display:block;width:100%;height:100%}
+.planbox .room{transition:opacity .15s}
+.planbox .room:hover{opacity:.7}
+
+/* ai */
+.aibody{flex:1;min-height:0;overflow:auto;padding:6px 18px 0;scrollbar-width:thin}
+.aibody ol{margin:0;padding:0;list-style:none;counter-reset:p}
+.aibody li{position:relative;padding-left:20px;margin-bottom:10px;font-size:13.5px;line-height:1.48;color:#e2e0f2}
+.aibody li::before{content:"";position:absolute;left:2px;top:7px;width:7px;height:7px;border-radius:2px;background:var(--occ)}
+.aibody .wait{color:var(--sec)}
+.aifoot{display:flex;align-items:center;gap:10px;padding:10px 18px 14px;color:var(--mut);font-size:12px}
+.aifoot .msg{flex:1;min-width:0}
+.aifoot .msg.err{color:var(--risk)}
+.btn{height:32px;padding:0 14px;border-radius:10px;border:0;background:rgba(143,123,255,.2);color:#d8d1ff;font-size:13px;font-weight:500;white-space:nowrap}
+.btn:hover{background:rgba(143,123,255,.3)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.data{height:34px;border-radius:17px;width:156px;padding:0}
+.btn.data:disabled{opacity:1;color:var(--sec)}
+.cnt{display:inline-block}
+.anim .cnt{animation:recount .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes recount{0%{opacity:1;transform:none;filter:none}35%{opacity:0;transform:translateY(-7px);filter:blur(3px)}36%{transform:translateY(7px)}100%{opacity:1;transform:none;filter:none}}
+.anim .seg i{animation:grow .9s cubic-bezier(.22,1,.36,1) both;transform-origin:left center}
+@keyframes grow{from{transform:scaleX(0)}}
+.anim .planbox .room{animation:fadein .7s ease-out both}
+@keyframes fadein{from{opacity:0}}
+tr.chg td{animation:flash 1.8s ease-out}
+@keyframes flash{0%,30%{background:rgba(143,123,255,.28)}100%{background:transparent}}
+
+/* tables */
+.tbl{flex:1;min-height:0;overflow:auto;padding:4px 18px 12px;scrollbar-width:thin}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--mut);font-weight:500;text-align:left;font-size:12px;padding:6px 8px 6px 0;white-space:nowrap}
+td{padding:0 8px 0 0;height:25px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+tr + tr td{border-top:1px solid rgba(255,255,255,.045)}
+.num{text-align:right}
+td.debt{color:var(--debt-soft);font-weight:600}
+td.risk{color:var(--risk)}
+.flag{display:inline-flex;align-items:center;gap:6px}
+.flag i{width:7px;height:7px;border-radius:2px;background:var(--risk);display:block}
+.flag.off i{background:rgba(255,255,255,.18)}
+.flag.off{color:var(--mut)}
+
+.tog{display:flex;background:rgba(255,255,255,.06);border-radius:10px;padding:3px}
+.tog button{border:0;background:transparent;height:26px;padding:0 12px;border-radius:8px;color:var(--sec);font-size:12px}
+.tog button[aria-pressed="true"]{background:rgba(77,141,255,.24);color:#dbe7ff;font-weight:600}
+.endsum{padding:10px 18px 0}
+.endsum .kv{margin-top:0}
+.endsum .seg{margin-top:12px}
+.endsum .lgs{display:flex;gap:16px;margin-top:9px;font-size:12px;color:var(--sec)}
+.ends .tbl{padding-top:8px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:8px;vertical-align:1px}
+
+.tip{position:fixed;z-index:9;pointer-events:none;background:rgba(30,28,52,.97);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 11px;font-size:12px;color:var(--sec);line-height:1.45;opacity:0;transition:opacity .1s;max-width:240px}
+.tip b{color:var(--text);font-weight:600;display:block}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}
+  .side{grid-row:auto;padding:16px 16px 0}
+  .side .obj-list{display:flex;gap:6px;overflow-x:auto}
+  .brand{margin-bottom:16px}.side h2,.side .note,.side .fill{display:none}
+  .top{padding:12px 16px}.chips{display:none}
+  .stage{margin:0 8px 8px}
+  .grid{min-width:0;grid-template-rows:none;grid-auto-rows:auto}
+  .k{grid-column:span 6;min-height:128px}.plan,.ai,.debts,.ends{grid-column:span 12;height:320px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-building" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M5 2.5h10a2 2 0 0 1 2 2V9h2a2 2 0 0 1 2 2v10.5H3V4.5a2 2 0 0 1 2-2Zm2 4v2h2v-2H7Zm4 0v2h2v-2h-2Zm-4 4v2h2v-2H7Zm4 0v2h2v-2h-2Zm-4 4v2h2v-2H7Zm4 0v2h2v-2h-2Zm6-2v2h2v-2h-2Zm0 4v2h2v-2h-2Z"/></symbol>
+    <symbol id="i-pie" viewBox="0 0 24 24"><path fill="currentColor" d="M11 3.05V13h9.95A9 9 0 1 1 11 3.05Z"/><path fill="currentColor" opacity=".55" d="M13 2.05A9 9 0 0 1 21.95 11H13V2.05Z"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M5 2h11a2 2 0 0 1 2 2v16h2.5v2h-17v-2H3V4a2 2 0 0 1 2-2Zm8 9a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 13 11Z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M4.5 4h13A1.5 1.5 0 0 1 19 5.5V7h.5A2.5 2.5 0 0 1 22 9.5v9A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4Zm12 8.5a1.75 1.75 0 1 0 0 3.5h3.5v-3.5h-3.5Z"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.27 3.5a2 2 0 0 1 3.46 0l8.2 14.5A2 2 0 0 1 20.2 21H3.8a2 2 0 0 1-1.73-3l8.2-14.5ZM11 9v5h2V9h-2Zm1 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M7 2h2v2h6V2h2v2h1.5A2.5 2.5 0 0 1 21 6.5v12a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5v-12A2.5 2.5 0 0 1 5.5 4H7V2Zm-2 7v9.5c0 .28.22.5.5.5h13a.5.5 0 0 0 .5-.5V9H5Zm2 2.5h3v3H7v-3Z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path fill="currentColor" d="M10 2.5c.5 4.3 2.7 6.5 7 7-4.3.5-6.5 2.7-7 7-.5-4.3-2.7-6.5-7-7 4.3-.5 6.5-2.7 7-7Z"/><path fill="currentColor" opacity=".6" d="M18 13c.3 2.5 1.5 3.7 4 4-2.5.3-3.7 1.5-4 4-.3-2.5-1.5-3.7-4-4 2.5-.3 3.7-1.5 4-4Z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>EGAS</b><span>контроль аренды</span></div>
+    <h2>Объекты</h2>
+    <div class="obj-list" id="objList"></div>
+    <div class="fill"></div>
+    <p class="note">Цифры посчитаны по договорам аренды на 01.10.2026</p>
+  </aside>
+  <header class="top">
+    <div><h1 id="title"></h1><div class="sub" id="subtitle"></div></div>
+    <div class="chips"><div class="chip">Договоры на <b>01.10.2026</b></div><div class="chip" id="ukChip"></div><button class="btn data" id="dataBtn">Обновить данные</button></div>
+  </header>
+  <main class="stage">
+    <div class="glow" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="glass">
+      <div class="grid">
+        <section class="card k" id="kOcc"></section>
+        <section class="card k" id="kFree"></section>
+        <section class="card k" id="kDebt"></section>
+        <section class="card k" id="kRisk"></section>
+
+        <section class="card plan">
+          <div class="bh"><svg class="ic" style="color:var(--occ)"><use href="#i-building"/></svg><h3>План по договорам</h3>
+            <div class="end" id="planLg"></div></div>
+          <div class="planbox" id="planBox"></div>
+        </section>
+
+        <section class="card ai">
+          <div class="bh"><svg class="ic" style="color:var(--occ)"><use href="#i-spark"/></svg><h3>Сводка ИИ для собственника</h3></div>
+          <div class="aibody" id="aiBody"></div>
+          <div class="aifoot"><span class="msg" id="aiMsg"></span><button class="btn" id="aiBtn" hidden>Обновить сводку</button></div>
+        </section>
+
+        <section class="card debts">
+          <div class="bh"><svg class="ic" style="color:var(--debt)"><use href="#i-wallet"/></svg><h3>Должники</h3>
+            <div class="end" id="debtLg"></div></div>
+          <div class="tbl" id="debtTbl"></div>
+        </section>
+
+        <section class="card ends">
+          <div class="bh"><svg class="ic" style="color:var(--c6)"><use href="#i-cal"/></svg><h3>Договоры заканчиваются</h3>
+            <div class="end"><div class="tog" role="group" aria-label="Срок"><button data-h="6" aria-pressed="true">6 мес</button><button data-h="12" aria-pressed="false">12 мес</button></div></div></div>
+          <div class="endsum" id="endSum"></div>
+          <div class="tbl" id="endTbl"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="tip" id="tip"></div>
+
+<script type="application/json" id="state">{"summaries": {"meridian": {"at": "12.11.2026", "points": ["По договорам занято 78%, а УК в отчёте за сентябрь пишет 92%. Разница 14 п.п., на деле свободно 4 048 м².", "Долг 7,46 млн ₽ у 9 арендаторов, больше всех должна Пекарня, 2,03 млн ₽. У 8 из 9 должников договор кончается в ближайшие 12 месяцев, они могут уйти с долгом.", "За 6 месяцев заканчиваются 10 договоров на 3 012 м², за 12 месяцев 27, это 53% занятой площади. Спросите у УК, откуда 92% и что она делает с должниками."]}, "slobodka": {"at": "12.11.2026", "points": ["По договорам занято 88%, цифра УК такая же. Свободно 1 392 м², это 6 помещений.", "4 должника на 2,07 млн ₽, больше всех Аптека №7, 782 тыс ₽. Риск ухода у 1 из 4: Химчистка должна 671 тыс ₽, а договор кончается 30.09.2027.", "За 6 месяцев заканчиваются 7 договоров на 1 860 м², за 12 месяцев 19 договоров, это 49% занятой площади. Попросите у УК план продлений по этим 19 договорам."]}, "rechnoy": {"at": "12.11.2026", "points": ["По договорам занято 86%, цифра УК совпадает. Свободно 1 372 м², это 5 помещений.", "2 должника на 642 тыс ₽: Микрофинанс «Деньги сразу» должен 410 тыс ₽, Агентство недвижимости «Дом» 232 тыс ₽. У обоих договор кончается в ближайшие 12 месяцев, риск ухода 2 из 2.", "За 6 месяцев заканчиваются 3 договора на 1 753 м², это 21% занятой площади, за 12 месяцев 7 договоров. Узнайте у УК, кто из них готов продлевать."]}}}</script>
+<script id="app">
+const TENANTS = {"meridian":[["М-001",1,"Гипермаркет «Семейный»",3200,720,"2029-08-31",0],["М-002",1,"Семейный гардероб",365,1640,"2030-09-30",0],["М-003",1,null,245,null,null,0],["М-004",1,null,620,null,null,0],["М-005",1,"Кофе Тайм",490,2500,"2027-05-31",0],["М-006",1,"Рыбалка",258,1370,"2027-10-31",0],["М-007",1,"Шаг",274,1400,"2027-05-31",1151000],["М-008",1,"Детская обувь",248,1610,"2027-02-28",1198000],["М-009",1,"Ногти",331,1840,"2027-03-31",609000],["М-010",1,"Шаурма №1",335,2310,"2027-09-30",0],["М-011",1,"Табак",401,1690,"2029-03-31",0],["М-012",1,"Связь",75,1680,"2026-12-31",0],["М-013",1,"Пиццерия",300,1920,"2027-08-31",0],["М-014",1,"Аптека №7",98,2570,"2027-07-31",0],["М-015",1,"Цветы",286,2280,"2028-03-31",0],["М-016",1,"Парфюм",279,2360,"2029-05-31",0],["М-017",1,"Часы",324,2370,"2027-04-30",0],["М-018",1,"Игрушки",312,1740,"2026-12-31",0],["М-019",1,"Пункт выдачи №2",490,1600,"2027-05-31",0],["М-020",1,"Ткани",345,1400,"2027-02-28",0],["М-021",1,"Пекарня",358,2830,"2027-03-31",2026000],["М-022",1,"Зоотовары",409,1650,"2031-07-31",0],["М-023",1,null,217,null,null,0],["М-024",1,"Бургерная",282,2260,"2027-10-31",0],["М-025",1,"Джинсы",70,2090,"2027-09-30",146000],["М-026",1,"Канцтовары",63,1520,"2027-05-31",0],["М-027",2,"Ключи",137,2300,"2027-08-31",0],["М-028",2,"Стиль",422,1480,"2027-02-28",0],["М-029",2,null,380,null,null,0],["М-030",2,null,480,null,null,0],["М-031",2,null,410,null,null,0],["М-032",2,null,202,null,null,0],["М-033",2,null,224,null,null,0],["М-034",2,"Уют",256,1230,"2027-03-31",0],["М-035",2,"Электрика",341,1020,"2027-12-31",0],["М-036",2,"Хобби",277,1460,"2027-06-30",809000],["М-037",2,"Пункт выдачи №1",125,1770,"2030-08-31",0],["М-038",2,"Суши",484,2580,"2027-09-30",0],["М-039",2,"Книжный",189,1010,"2027-01-31",0],["М-040",2,"Посуда",178,1450,"2031-03-31",516000],["М-041",2,null,162,null,null,0],["М-042",2,"Игровая зона",162,1200,"2027-04-30",194000],["М-043",2,"Оптика Плюс",139,2740,"2027-07-31",0],["М-044",2,null,338,null,null,0],["М-045",2,"Здоровье",423,2370,"2032-11-30",0],["М-046",2,"Техно",459,1810,"2027-05-31",0],["М-047",2,null,330,null,null,0],["М-048",2,"Мебель",96,740,"2027-11-30",0],["М-049",2,null,440,null,null,0],["М-050",2,"Сумки",253,1780,"2027-05-31",0],["М-051",2,"Ремонт обуви",259,1690,"2027-07-31",0],["М-052",2,"Текстиль",83,1010,"2032-05-31",0],["М-053",2,"Барбершоп",476,1710,"2026-12-31",814000]],"slobodka":[["С-001",1,"Супермаркет «Корзина»",2400,640,"2029-10-31",0],["С-002",1,"Пункт выдачи №2",131,1700,"2027-06-30",0],["С-003",1,"Химчистка",359,1870,"2027-09-30",671000],["С-004",1,"Здоровье",336,2810,"2027-06-30",0],["С-005",1,"Электрика",268,950,"2027-06-30",0],["С-006",1,"Модный квартал",153,2060,"2027-06-30",0],["С-007",1,"Карапуз",404,1100,"2028-03-31",444000],["С-008",1,"Посуда",411,920,"2027-05-31",0],["С-009",1,"Текстиль",282,1100,"2026-10-31",0],["С-010",1,"Цветы",279,2240,"2027-10-31",0],["С-011",1,"Джинсы",162,1940,"2027-06-30",0],["С-012",1,"Детский клуб",60,860,"2026-12-31",0],["С-013",1,"Сумки",221,2260,"2028-11-30",0],["С-014",1,"Чай-Кофе",314,2130,"2027-10-31",0],["С-015",1,"Шаг",89,1940,"2027-01-31",0],["С-016",1,"Пекарня",405,1920,"2027-05-31",0],["С-017",1,"Рыбалка",160,1070,"2027-11-30",171000],["С-018",1,"Игровая зона",160,930,"2027-05-31",0],["С-019",2,"Связь",77,2280,"2027-07-31",0],["С-020",2,"Ногти",494,2280,"2027-01-31",0],["С-021",2,"Телефоны",381,1960,"2032-03-31",0],["С-022",2,"Часы",440,2510,"2027-02-28",0],["С-023",2,"Аптека №7",327,2390,"2029-12-31",782000],["С-024",2,"Оптика Плюс",74,2080,"2030-10-31",0],["С-025",2,"Золото Урала",202,2340,"2027-07-31",0],["С-026",2,"Ключи",276,1850,"2027-01-31",0],["С-027",2,"СпортЛайн",109,1370,"2030-02-28",0],["С-028",2,"Хобби",474,1530,"2027-07-31",0],["С-029",2,"Лайм",219,1960,"2026-12-31",0],["С-030",2,"Шаурма №1",126,2330,"2027-10-31",0],["С-031",2,"Техно",415,1970,"2028-10-31",0],["С-032",2,null,119,null,null,0],["С-033",2,null,374,null,null,0],["С-034",2,null,223,null,null,0],["С-035",2,null,255,null,null,0],["С-036",2,null,188,null,null,0],["С-037",2,null,233,null,null,0]],"rechnoy":[["Р-001",1,"Юридическая фирма «Право»",127,1010,"2029-10-31",0],["Р-002",2,"Страховая «Гарант»",203,910,"2028-02-29",0],["Р-003",3,"IT-компания «Код»",417,1010,"2027-11-30",0],["Р-004",4,"Бухгалтерия «Баланс»",639,1090,"2027-03-31",0],["Р-005",5,"Агентство недвижимости «Дом»",223,1040,"2027-05-31",232000],["Р-006",6,"Банк «Приречный», отделение",203,950,"2027-04-30",0],["Р-007",1,"Учебный центр «Знание»",294,1040,"2028-07-31",0],["Р-008",2,"Логистика «Вектор»",695,1090,"2029-01-31",0],["Р-009",3,"Проектный институт «Гипрострой»",230,1130,"2029-09-30",0],["Р-010",4,"Рекламное агентство «Идея»",682,910,"2027-02-28",0],["Р-011",5,"Медицинский центр «Здоровье»",622,1050,"2029-01-31",0],["Р-012",6,"Нотариус",221,880,"2029-03-31",0],["Р-013",1,"Турагентство «Глобус»",526,1090,"2028-06-30",0],["Р-014",2,"Кадровое агентство «Персонал»",459,880,"2027-04-30",0],["Р-015",3,"Микрофинанс «Деньги сразу»",432,950,"2027-03-31",410000],["Р-016",4,"Дистрибьютор «Опт-Трейд»",877,1000,"2027-12-31",0],["Р-017",5,"Архитектурное бюро «Линия»",188,1000,"2028-09-30",0],["Р-018",6,"Оценочная компания «Эксперт»",133,890,"2027-07-31",0],["Р-019",1,"Связь «Телеком-Н»",834,1140,"2029-07-31",0],["Р-020",2,"Коворкинг «Точка»",423,950,"2028-07-31",0],["Р-021",2,null,217,null,null,0],["Р-022",3,null,252,null,null,0],["Р-023",4,null,262,null,null,0],["Р-024",5,null,422,null,null,0],["Р-025",6,null,219,null,null,0]]};
+const STATE = JSON.parse(document.getElementById('state').textContent);
+const REF = '2026-10-01';
+
+const OBJECTS = {
+  meridian:{name:'Меридиан', type:'ТЦ', district:'Центральный район', uk:{pct:92, src:'отчёт УК за сентябрь 2026'}, plan:{mode:'stack', anchor:'left', shift:0}},
+  slobodka:{name:'Слобода', type:'ТЦ', district:'Северный район', uk:{pct:88, src:'реестр УК, III квартал 2026'}, plan:{mode:'stack', anchor:'right', shift:.08, gallery:true}},
+  rechnoy:{name:'Речной', type:'БЦ', district:'Центральный район', uk:{pct:86, src:'реестр УК, III квартал 2026'}, plan:{mode:'grid', cols:3, core:true}}
+};
+
+/* ---------- formatting ---------- */
+const nb = '\u00a0';
+const fmtInt = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, nb);
+const fmtMoney = r => r >= 1e6 ? (r/1e6).toFixed(2).replace('.', ',') + nb + 'млн' + nb + '₽' : fmtInt(r/1000) + nb + 'тыс' + nb + '₽';
+const fmtDate = s => s.slice(8,10) + '.' + s.slice(5,7) + '.' + s.slice(0,4);
+const addMonths = (iso, m) => { const [y,mo] = iso.split('-').map(Number); const t = (mo-1) + m; return (y + Math.floor(t/12)) + '-' + String(t%12+1).padStart(2,'0') + '-01'; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plural = (n, a, b, c) => { const m10=n%10, m100=n%100; return m10===1&&m100!==11?a:(m10>=2&&m10<=4&&(m100<12||m100>14)?b:c); };
+
+/* ---------- metrics (all numbers come from here) ---------- */
+function metrics(key){
+  const rows = TENANTS[key].map(r => ({id:r[0], floor:r[1], name:r[2], area:r[3], rate:r[4], end:r[5], debt:r[6]}));
+  const total = rows.reduce((s,r)=>s+r.area,0);
+  const leased = rows.filter(r=>r.name);
+  const leasedArea = leased.reduce((s,r)=>s+r.area,0);
+  const free = rows.filter(r=>!r.name);
+  const occPct = Math.round(leasedArea/total*100);
+  const d6 = addMonths(REF,6), d12 = addMonths(REF,12);
+  const debtors = leased.filter(r=>r.debt>0).map(r=>({...r, months:Math.round(r.debt/(r.area*r.rate)), risk:r.end < d12})).sort((a,b)=>b.debt-a.debt);
+  const ending = h => leased.filter(r=>r.end < (h===6?d6:d12)).sort((a,b)=>a.end.localeCompare(b.end));
+  const e6 = ending(6), e12 = ending(12);
+  const floors = [...new Set(rows.map(r=>r.floor))].sort((a,b)=>a-b);
+  return {rows, total, leasedArea, freeArea:total-leasedArea, freeCount:free.length, occPct, freePct:100-occPct,
+    uk:OBJECTS[key].uk.pct, gap:OBJECTS[key].uk.pct-occPct, debtors, debtSum:debtors.reduce((s,r)=>s+r.debt,0),
+    riskCount:debtors.filter(r=>r.risk).length, e6, e12, floors,
+    area6:e6.reduce((s,r)=>s+r.area,0), area12:e12.reduce((s,r)=>s+r.area,0)};
+}
+
+/* ---------- building plan: walls + door gaps only ---------- */
+function floorSVG(rooms, x, y, w, h, opt){
+  let fills = '', walls = '';
+  const line = (x1,y1,x2,y2,cls) => `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${cls||'w'}"/>`;
+  // edge with optional door gap [g0,g1] along the edge
+  const edge = (x1,y1,x2,y2,gap) => {
+    if(!gap) return line(x1,y1,x2,y2);
+    if(y1===y2){ return line(x1,y1,gap[0],y1) + line(gap[1],y1,x2,y2); }
+    return line(x1,y1,x1,gap[0]) + line(x1,gap[1],x2,y2);
+  };
+  const room = (r, rx, ry, rw, rh, doorSide) => {
+    const cls = r.name ? 'occ' : 'free';
+    const tipTxt = r.name ? `${r.id}, ${r.name}|${fmtInt(r.area)} м², договор до ${fmtDate(r.end)}` : `${r.id}, свободно|${fmtInt(r.area)} м²`;
+    fills += `<rect class="room ${cls}" x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${rw.toFixed(1)}" height="${rh.toFixed(1)}" data-tip="${esc(tipTxt)}"/>`;
+    const gw = Math.min(13, rw*.5, rh*.45);
+    const gx = rx + Math.max(3, rw*.22), gy = ry + rh/2 - gw/2;
+    walls += edge(rx,ry,rx+rw,ry, doorSide==='top'?[gx,gx+gw]:null);
+    walls += edge(rx,ry+rh,rx+rw,ry+rh, doorSide==='bottom'?[gx,gx+gw]:null);
+    walls += edge(rx,ry,rx,ry+rh, doorSide==='left'?[gy,gy+gw]:null);
+    walls += edge(rx+rw,ry,rx+rw,ry+rh, doorSide==='right'?[gy,gy+gw]:null);
+  };
+  fills += `<rect class="fp" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+  const ch = Math.max(10, Math.min(18, h*.16));
+  let bx = x, bw = w;
+  const anchor = rooms.find(r=>r.area>1500);
+  const rest = rooms.filter(r=>r!==anchor);
+  const tot = rooms.reduce((s,r)=>s+r.area,0);
+  if(anchor){
+    const aw = w * anchor.area/tot * 1.05;
+    const ax = opt.anchor==='right' ? x+w-aw : x;
+    room(anchor, ax, y, aw, h, opt.anchor==='right'?'left':'right');
+    if(opt.anchor==='right') bw = w-aw; else { bx = x+aw; bw = w-aw; }
+  }
+  let core = null;
+  if(opt.core){ const cw = Math.max(26, w*.11); core = {x:bx, w:cw}; bx += cw; bw -= cw; }
+  // two bands around a corridor
+  const top = [], bot = []; let st=0, sb=0;
+  rest.forEach(r=>{ if(st<=sb){top.push(r); st+=r.area;} else {bot.push(r); sb+=r.area;} });
+  const bhTop = (h-ch)/2 * (1+(opt.shift||0)), bhBot = h-ch-bhTop;
+  const lay = (list, sum, ry, rh, door) => { let cx = bx; list.forEach(r=>{ const rw = bw*r.area/sum; room(r, cx, ry, rw, rh, door); cx += rw; }); };
+  lay(top, st, y, bhTop, 'bottom');
+  lay(bot, sb, y+bhTop+ch, bhBot, 'top');
+  const cy0 = y+bhTop, cy1 = cy0+ch;
+  if(core){
+    // stairs and lifts: walls only, door to the corridor
+    walls += line(core.x,y,core.x+core.w,y) + line(core.x,y+h,core.x+core.w,y+h);
+    walls += edge(core.x+core.w,y,core.x+core.w,y+h,[cy0+1,cy1-1]);
+    walls += line(core.x+core.w*.5,y+5,core.x+core.w*.5,y+h-5,'w thin');
+  }
+  // outer walls with entrances at corridor ends
+  const leftOpen = !anchor || opt.anchor==='right';
+  const rightOpen = (!anchor || opt.anchor!=='right') && !opt.core;
+  walls += line(x,y,x+w,y,'o') + line(x,y+h,x+w,y+h,'o');
+  walls += (leftOpen && !opt.core) ? line(x,y,x,cy0+1,'o')+line(x,cy1-1,x,y+h,'o') : line(x,y,x,y+h,'o');
+  walls += rightOpen ? line(x+w,y,x+w,cy0+1,'o')+line(x+w,cy1-1,x+w,y+h,'o') : line(x+w,y,x+w,y+h,'o');
+  return fills + walls;
+}
+
+function planSVG(key, m, W, H){
+  const opt = OBJECTS[key].plan;
+  const byFloor = f => m.rows.filter(r=>r.floor===f);
+  let s = '';
+  const lab = (t, x, y) => `<text x="${x}" y="${y}" class="fl">${t}</text>`;
+  if(opt.mode==='stack'){
+    const n = m.floors.length, gap = 26, lw = 58;
+    const fh = (H - gap*(n-1)) / n;
+    const fw = W-lw-2;
+    const f1 = byFloor(m.floors[0]), an = f1.find(r=>r.area>1500);
+    const galW = an ? fw*(1 - an.area/f1.reduce((a,r)=>a+r.area,0)*1.05) : fw;
+    m.floors.forEach((f,i)=>{ const fy = i*(fh+gap), rs = byFloor(f), w = (opt.gallery && !rs.some(r=>r.area>1500)) ? galW : fw;
+      s += lab(f+' этаж', 0, fy+fh/2+4) + floorSVG(rs, lw, fy+1, w, fh-2, opt); });
+  } else {
+    const cols = opt.cols, rows = Math.ceil(m.floors.length/cols), gx = 28, gy = 20, lw = 52;
+    const cw = (W - gx*(cols-1))/cols, fh = (H - gy*(rows-1))/rows;
+    m.floors.forEach((f,i)=>{ const c = i%cols, r = Math.floor(i/cols); const fx = c*(cw+gx), fy = r*(fh+gy);
+      s += lab(f+' этаж', fx, fy+fh/2+4) + floorSVG(byFloor(f), fx+lw, fy+1, cw-lw-2, fh-2, opt); });
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="План помещений">
+  <style>.occ{fill:var(--occ-fill)}.free{fill:var(--free-fill)}.fp{fill:rgba(205,198,255,.13)}.w{stroke:#d8d4f2;stroke-opacity:.85;stroke-width:1.6;stroke-linecap:square}.w.thin{stroke-opacity:.35;stroke-width:1}.o{stroke:#ece9ff;stroke-width:2.6;stroke-linecap:square}.fl{fill:var(--sec);font-size:12px;font-family:inherit}</style>${s}</svg>`;
+}
+
+/* ---------- render ---------- */
+const cntSpan = (v, d) => `<span class="cnt" data-v="${v}" data-d="${d||0}">${d ? v.toFixed(d).replace('.', ',') : fmtInt(v)}</span>`;
+let cur = 'meridian', horizon = 6;
+const $ = id => document.getElementById(id);
+const segBar = parts => `<div class="seg">${parts.filter(p=>p.v>0).map(p=>`<i style="flex:${p.v} 1 0;background:${p.c}" title="${esc(p.t||'')}"></i>`).join('')}</div>`;
+
+function renderSide(){
+  $('objList').innerHTML = Object.entries(OBJECTS).map(([k,o])=>{
+    const t = TENANTS[k].reduce((s,r)=>s+r[3],0);
+    return `<button class="obj" data-k="${k}" ${k===cur?'aria-current="page"':''}><svg class="ic" width="22" height="22"><use href="#i-building"/></svg><span class="t"><b>${o.name}</b><small>${o.type}, ${fmtInt(t)} м²</small></span></button>`;
+  }).join('');
+}
+
+function render(){
+  const o = OBJECTS[cur], m = metrics(cur);
+  renderSide();
+  document.title = 'EGAS, ' + o.name;
+  $('title').textContent = o.name;
+  $('subtitle').textContent = `${o.type}, ${o.district}, ${fmtInt(m.total)} м², ${m.rows.length} ${plural(m.rows.length,'помещение','помещения','помещений')}`;
+  $('ukChip').innerHTML = `Цифра УК: <b>${o.uk.src.replace(/^отчёт УК/,'отчёт').replace(/^реестр УК/,'реестр')}</b>`;
+
+  const c = cntSpan;
+  const big = (num, unit) => `<b>${num}${unit?`<small>${unit}</small>`:''}</b>`;
+  const money = r => r >= 1e6 ? big(c(+(r/1e6).toFixed(2), 2), nb+'млн'+nb+'₽') : big(c(Math.round(r/1000)), nb+'тыс'+nb+'₽');
+  $('kOcc').innerHTML = `<div class="kh"><svg class="ic" style="color:var(--occ)"><use href="#i-pie"/></svg>Заполненность по договорам</div>
+    <div class="kv">${big(c(m.occPct),'%')}<span>у УК <em style="color:${m.gap>0?'var(--risk)':'var(--text)'}">${c(m.uk)}%</em></span></div>
+    <div class="kfoot">${segBar([{v:m.occPct,c:'var(--occ)',t:'по договорам'},{v:Math.max(0,m.gap),c:'var(--risk)',t:'разница с УК'},{v:100-Math.max(m.occPct,m.uk),c:'var(--rest)',t:'свободно у УК'}])}
+    <div class="kcap">${m.gap>0?`УК пишет на <span style="color:var(--risk)">${m.gap} п.п.</span> больше`:'Совпадает с цифрой УК'}</div></div>`;
+
+  const freeByFloor = m.floors.map(f=>({f, a:m.rows.filter(r=>r.floor===f && !r.name).reduce((s,r)=>s+r.area,0)})).filter(x=>x.a);
+  $('kFree').innerHTML = `<div class="kh"><svg class="ic" style="color:var(--free)"><use href="#i-door"/></svg>Свободно</div>
+    <div class="kv">${big(c(m.freePct),'%')}<span><em style="color:var(--free)">${c(m.freeArea)} м²</em></span></div>
+    <div class="kfoot">${segBar(freeByFloor.map((x,i)=>({v:x.a,c:`rgba(246,195,68,${Math.max(.45,1-i*.12)})`,t:x.f+' этаж, '+fmtInt(x.a)+' м²'})))}
+    <div class="kcap">${m.freeCount} ${plural(m.freeCount,'помещение','помещения','помещений')} на ${freeByFloor.length} ${plural(freeByFloor.length,'этаже','этажах','этажах')}</div></div>`;
+
+  $('kDebt').innerHTML = `<div class="kh"><svg class="ic" style="color:var(--debt)"><use href="#i-wallet"/></svg>Долг арендаторов</div>
+    <div class="kv">${money(m.debtSum)}<span><em style="color:var(--debt-soft)">${c(m.debtors.length)} ${plural(m.debtors.length,'должник','должника','должников')}</em></span></div>
+    <div class="kfoot">${segBar(m.debtors.map((d,i)=>({v:d.debt,c:`rgba(255,93,85,${Math.max(.4,1-i*.08)})`,t:d.name+', '+fmtMoney(d.debt)})))}
+    <div class="kcap">Больше всех ${esc(m.debtors[0].name)}, ${fmtMoney(m.debtors[0].debt)}</div></div>`;
+
+  $('kRisk').innerHTML = `<div class="kh"><svg class="ic" style="color:var(--risk)"><use href="#i-warn"/></svg>Риск ухода</div>
+    <div class="kv">${big(c(m.riskCount))}<span>из ${m.debtors.length} <em style="color:var(--risk)">${plural(m.debtors.length,'должника','должников','должников')}</em></span></div>
+    <div class="kfoot">${segBar(m.debtors.map(d=>({v:1,c:d.risk?'var(--risk)':'var(--rest)',t:d.name})))}
+    <div class="kcap">Должен, и договор кончается за 12 мес</div></div>`;
+
+  $('planLg').innerHTML = `<span class="lg"><i style="background:var(--occ)"></i>Занято <b>${c(m.leasedArea)} м²</b></span><span class="lg"><i style="background:var(--free)"></i>Свободно <b>${c(m.freeArea)} м²</b></span>`;
+  const pb = $('planBox'); pb.innerHTML = planSVG(cur, m, Math.round(pb.clientWidth-36), Math.round(pb.clientHeight-24));
+
+  $('debtLg').innerHTML = `<span class="lg"><b style="color:var(--debt-soft)">${fmtMoney(m.debtSum)}</b></span><span class="lg"><i style="background:var(--risk)"></i>риск ухода <b>${m.riskCount}</b></span>`;
+  $('debtTbl').innerHTML = `<table><colgroup><col style="width:38%"><col style="width:16%"><col style="width:17%"><col style="width:16%"><col style="width:13%"></colgroup>
+    <thead><tr><th>Арендатор</th><th class="num">Долг</th><th class="num">Месяцев долга</th><th class="num">Договор до</th><th style="padding-left:14px">Риск</th></tr></thead><tbody>
+    ${m.debtors.map(d=>`<tr data-id="${d.id}"><td title="${esc(d.name)}">${esc(d.name)}</td><td class="num debt">${fmtMoney(d.debt)}</td><td class="num">${d.months}</td><td class="num ${d.risk?'risk':''}">${fmtDate(d.end)}</td><td style="padding-left:14px"><span class="flag ${d.risk?'':'off'}"><i></i>${d.risk?'уйдёт?':'нет'}</span></td></tr>`).join('')}
+    </tbody></table>`;
+
+  renderEnds(m);
+  renderAI(m);
+}
+
+function renderEnds(m){
+  document.querySelectorAll('.tog button').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.h===horizon)));
+  const list = horizon===6 ? m.e6 : m.e12, area = horizon===6 ? m.area6 : m.area12;
+  const share = Math.round(area/m.leasedArea*100);
+  $('endSum').innerHTML = `<div class="kv"><b>${cntSpan(list.length)}</b><span>${plural(list.length,'договор','договора','договоров')}, <em style="color:var(--c12)">${cntSpan(area)} м²</em>, ${cntSpan(share)}% занятой площади</span></div>
+    ${segBar([{v:m.area6,c:'var(--c6)',t:'до 6 мес'},{v:horizon===12?m.area12-m.area6:0,c:'var(--c12)',t:'6–12 мес'},{v:m.leasedArea-(horizon===6?m.area6:m.area12),c:'var(--rest)',t:'позже'}])}
+    <div class="lgs"><span class="lg"><i style="background:var(--c6)"></i>до 6 мес <b>${fmtInt(m.area6)} м²</b></span>${horizon===12?`<span class="lg"><i style="background:var(--c12)"></i>от 6 до 12 мес <b>${fmtInt(m.area12-m.area6)} м²</b></span>`:''}</div>`;
+  const d6 = addMonths(REF,6);
+  $('endTbl').innerHTML = `<table><colgroup><col style="width:56%"><col style="width:20%"><col style="width:24%"></colgroup>
+    <thead><tr><th>Арендатор</th><th class="num">Площадь</th><th class="num">Договор до</th></tr></thead><tbody>
+    ${list.map(r=>`<tr data-id="${r.id}"><td title="${esc(r.name)}"><span class="dot" style="background:${r.end<d6?'var(--c6)':'var(--c12)'}"></span>${esc(r.name)}</td><td class="num">${fmtInt(r.area)} м²</td><td class="num">${fmtDate(r.end)}</td></tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ---------- AI summary ---------- */
+function facts(key, m){
+  const o = OBJECTS[key];
+  return {
+    'объект': `${o.type} «${o.name}»`, 'дата_данных': '01.10.2026', 'площадь_м2': fmtInt(m.total),
+    'заполненность_по_договорам_проц': m.occPct, 'заполненность_у_УК_проц': m.uk, 'источник_цифры_УК': o.uk.src,
+    'разница_с_УК_пп': m.gap, 'свободно_проц': m.freePct, 'свободно_м2': fmtInt(m.freeArea), 'свободных_помещений': m.freeCount,
+    'должников': m.debtors.length, 'долг_всего': fmtMoney(m.debtSum),
+    'должники': m.debtors.map(d=>({'арендатор':d.name, 'долг':fmtMoney(d.debt), 'месяцев_аренды_долга':d.months, 'договор_до':fmtDate(d.end), 'риск_ухода':d.risk})),
+    'риск_ухода': `${m.riskCount} из ${m.debtors.length}`, 'правило_риска': 'арендатор должен и договор кончается в ближайшие 12 месяцев',
+    'договоры_до_6_мес': {'число':m.e6.length, 'площадь_м2':fmtInt(m.area6), 'доля_занятой_площади_проц':Math.round(m.area6/m.leasedArea*100)},
+    'договоры_до_12_мес': {'число':m.e12.length, 'площадь_м2':fmtInt(m.area12), 'доля_занятой_площади_проц':Math.round(m.area12/m.leasedArea*100)}
+  };
+}
+const numTokens = s => (String(s).replace(/\u00a0/g,' ').match(/\d+(?:[ ]\d{3})*(?:[.,]\d+)*/g) || []).map(t=>t.replace(/ /g,'').replace(',','.'));
+function allowedSet(f){
+  const set = new Set(), txt = JSON.stringify(f);
+  numTokens(txt).forEach(t=>{ set.add(t); if(/^\d\d\.\d\d\.\d{4}$/.test(t)) t.split('.').forEach(p=>{ set.add(p); set.add(p.replace(/^0+(?=\d)/,'')); }); });
+  ['6','12'].forEach(x=>set.add(x));
+  return set;
+}
+function checkNumbers(points, f){
+  const ok = allowedSet(f);
+  return points.flatMap(numTokens).filter(t => !ok.has(t) && !ok.has(t.replace(/^0+(?=\d)/,'')));
+}
+function prompt(f){
+  return `Ты пишешь короткую сводку для собственника торгового или бизнес-центра. Он не видит объект сам и получает только отчёты управляющей компании.
+
+Данные объекта (все цифры уже посчитаны по договорам аренды):
+${JSON.stringify(f, null, 1)}
+
+Напиши 3 пункта, в каждом 1 или 2 коротких предложения, не больше 28 слов на пункт:
+1. Сколько площади реально занято по договорам и сходится ли это с цифрой УК. Если разница больше 0, назови её.
+2. Долги: сколько должников и на какую сумму, кто должен больше всех, у скольких есть риск ухода.
+3. Какие договоры заканчиваются в ближайшие 6 и 12 месяцев и что собственнику проверить у УК в первую очередь.
+
+Правила:
+- Бери числа только из данных выше и пиши их ровно в том виде, как в данных. Не округляй, не считай новых чисел, не придумывай фактов.
+- Простой русский язык, как в живом разговоре. Без канцелярита, без «является», «осуществляется», «в рамках». Без длинных тире. Числа цифрами.
+- Без вступлений и выводов, только 3 пункта.
+
+Ответь только JSON без пояснений: {"points":["пункт 1","пункт 2","пункт 3"]}`;
+}
+
+const API = null;   // демо режим: сервера нет
+const live = {};       // summaries made live in this view, per object
+let busy = false;
+const nbText = p => esc(p).replace(/(\d) (?=\S)/g,'$1'+nb).replace(/(тыс|млн) ₽/g,'$1'+nb+'₽');
+function renderAI(m){
+  const l = live[cur], saved = STATE.summaries && STATE.summaries[cur];
+  const pts = l ? l.points : saved ? saved.points : null;
+  $('aiBody').innerHTML = pts ? `<ol>${pts.map(p=>`<li>${nbText(p)}</li>`).join('')}</ol>` : `<p class="wait">Сводки пока нет.</p>`;
+  if(l) setMsg(`ИИ сделал сводку в ${l.at} из цифр на экране`);
+  else setMsg('Демо режим, сводку подготовил ИИ по данным объекта');
+  $('aiBtn').hidden = !API;
+  $('aiBtn').textContent = l ? 'Сделать заново' : 'Сделать сводку';
+}
+function setMsg(t, err){ const e = $('aiMsg'); e.textContent = t; e.classList.toggle('err', !!err); }
+
+async function refreshAI(){
+  if(!API || busy) return;
+  const key = cur, m = metrics(key), f = facts(key, m);
+  busy = true; $('aiBtn').disabled = true;
+  $('aiBody').innerHTML = `<p class="wait">ИИ читает цифры и пишет сводку…</p>`; setMsg('');
+  try{
+    const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({facts:f})});
+    const res = await r.json().catch(()=>({}));
+    if(!r.ok) throw {code: res.error || 'server'};
+    const points = (Array.isArray(res.points) ? res.points : []).map(String).map(s=>s.replace(/\s[—–]\s/g, ', ')).slice(0,3);
+    if(points.length < 3) throw {code:'format'};
+    if(key !== cur) return;
+    const bad = checkNumbers(points, f);
+    if(bad.length){ renderAI(m); setMsg(`ИИ назвал числа, которых нет в данных (${bad.slice(0,3).join(', ')}). Оставили прежнюю сводку`, true); return; }
+    const d = new Date();
+    live[key] = {points, at:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+    renderAI(m);
+  } catch(e){
+    if(key === cur){ renderAI(m);
+      const map = {rate_limited:'ИИ занят, попробуйте через минуту', format:'ИИ ответил не по формату, попробуйте ещё раз', no_key:'На сервере нет ключа ИИ'};
+      setMsg(map[e && e.code] || 'ИИ не ответил, попробуйте ещё раз', true); }
+  } finally { busy = false; $('aiBtn').disabled = false; }
+}
+
+/* ---------- data recheck ---------- */
+let checking = false;
+function snapshot(){
+  const snap = {};
+  Object.keys(TENANTS).forEach(k=>TENANTS[k].forEach(r=>{ snap[k+'/'+r[0]] = JSON.stringify(r); }));
+  return snap;
+}
+let lastSnap = snapshot();
+function animateNumbers(root){
+  // numbers fade out and roll back in with their real value: no made-up in-between figures
+  [...root.querySelectorAll('.cnt')].forEach((el,i)=>{ el.style.animationDelay = (i*35)+'ms'; });
+}
+async function recheck(){
+  if(checking) return;
+  checking = true;
+  const btn = $('dataBtn'); btn.disabled = true; btn.textContent = 'Проверяю файлы…';
+  await new Promise(r=>setTimeout(r, 650));
+  const fresh = snapshot();   // the same three tenant files read again
+  const changed = Object.keys(fresh).filter(id => fresh[id] !== lastSnap[id]);
+  lastSnap = fresh;
+  const grid = document.querySelector('.grid');
+  grid.classList.remove('anim'); void grid.offsetWidth;
+  render(); grid.classList.add('anim');
+  animateNumbers(grid);
+  const ids = new Set(changed.filter(id=>id.startsWith(cur+'/')).map(id=>id.split('/')[1]));
+  document.querySelectorAll('tr[data-id]').forEach(tr=>{ if(ids.has(tr.dataset.id)) tr.classList.add('chg'); });
+  await new Promise(r=>setTimeout(r, 1000));
+  btn.textContent = changed.length ? `Изменилось строк: ${changed.length}` : 'Изменений нет';
+  setTimeout(()=>{ btn.textContent = 'Обновить данные'; btn.disabled = false; checking = false; grid.classList.remove('anim'); }, 2200);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e=>{
+  const ob = e.target.closest('.obj'); if(ob && ob.dataset.k !== cur){ cur = ob.dataset.k; render(); return; }
+  const tb = e.target.closest('.tog button'); if(tb){ horizon = +tb.dataset.h; renderEnds(metrics(cur)); return; }
+  if(e.target.closest('#aiBtn')) refreshAI();
+  if(e.target.closest('#dataBtn')) recheck();
+});
+const tip = $('tip');
+document.addEventListener('mousemove', e=>{
+  const r = e.target.closest && e.target.closest('[data-tip]');
+  if(!r){ tip.style.opacity = 0; return; }
+  const [a,b] = r.dataset.tip.split('|');
+  tip.innerHTML = `<b>${esc(a)}</b>${esc(b)}`; tip.style.opacity = 1;
+  tip.style.left = Math.min(e.clientX+14, innerWidth-250)+'px'; tip.style.top = (e.clientY+14)+'px';
+});
+
+render();
+</script>
+</body>
+</html>
